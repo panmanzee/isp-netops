@@ -1,0 +1,23 @@
+== 1. backup: both targets saved as git history
+sw-core new
+fw-edge new
+== 2. drift: clean targets have none
+sw-core ok
+fw-edge ok
+== 3. drift: someone changes both by hand -> detected
+sw-core DRIFT
+       added since last backup:    interface GigabitEthernet0/5 | shutdown
+fw-edge DRIFT
+       added since last backup:    config firewall policy > edit 4 | set action accept
+       added since last backup:    config firewall policy > edit 4 | set dstaddr "all"
+       added since last backup:    config firewall policy > edit 4 | set dstintf "port1"
+       added since last backup:    config firewall policy > edit 4 | set name "test-allow"
+       added since last backup:    config firewall policy > edit 4 | set schedule "always"
+       added since last backup:    config firewall policy > edit 4 | set service "ALL"
+       added since last backup:    config firewall policy > edit 4 | set srcaddr "all"
+       added since last backup:    config firewall policy > edit 4 | set srcintf "port2"
+       added since last backup:    config firewall policy | edit 4
+== 4. revert both -> clean again
+sw-core ok
+fw-edge ok
+VENDOR E2E OK

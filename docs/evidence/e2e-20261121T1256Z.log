@@ -1,0 +1,255 @@
+# e2e 20261121T1256Z on 6.6.87.2-microsoft-standard-WSL2,     version: 0.83.0
+docker/frr-lab/build.sh
+DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
+            Install the buildx component to build images with BuildKit:
+            https://docs.docker.com/go/buildx/
+
+Sending build context to Docker daemon   7.68kB
+Step 1/13 : ARG FRR_VERSION=10.7.1
+Step 2/13 : FROM quay.io/frrouting/frr:${FRR_VERSION}
+10.7.1: Pulling from frrouting/frr
+0c2c7544a070: Pulling fs layer
+f7ee36c9aa34: Pulling fs layer
+67113c48a71c: Pulling fs layer
+afb0d5225f6b: Pulling fs layer
+02ef011194f6: Pulling fs layer
+7460114066d1: Pulling fs layer
+4f4fb700ef54: Pulling fs layer
+4f4fb700ef54: Already exists
+0c2c7544a070: Download complete
+02ef011194f6: Download complete
+afb0d5225f6b: Download complete
+f7ee36c9aa34: Download complete
+f7ee36c9aa34: Pull complete
+02ef011194f6: Pull complete
+7460114066d1: Download complete
+7460114066d1: Pull complete
+67113c48a71c: Download complete
+4f4fb700ef54: Pull complete
+0c2c7544a070: Pull complete
+afb0d5225f6b: Pull complete
+67113c48a71c: Pull complete
+Digest: sha256:e995beaa50fdc9edb35eadcfefa29b7f062cc06f2b812613789b68fa541554d2
+Status: Downloaded newer image for quay.io/frrouting/frr:10.7.1
+ ---> e995beaa50fd
+Step 3/13 : RUN apk add --no-cache openssh-server openssh-keygen     && ssh-keygen -A
+ ---> Running in 1e97fbb187c6
+fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/APKINDEX.tar.gz
+fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/APKINDEX.tar.gz
+(1/3) Installing openssh-keygen (10.0_p1-r11)
+(2/3) Installing openssh-server-common (10.0_p1-r11)
+(3/3) Installing openssh-server (10.0_p1-r11)
+Executing busybox-1.37.0-r20.trigger
+OK: 156 MiB in 73 packages
+ssh-keygen: generating new host keys: RSA ECDSA ED25519 
+ ---> Removed intermediate container 1e97fbb187c6
+ ---> 04ce1ba13084
+Step 4/13 : RUN adduser -D -s /usr/bin/vtysh automation     && addgroup automation frrvty     && addgroup automation frr     && sed -i 's/^automation:!:/automation:*:/' /etc/shadow     && mkdir -p /home/automation/.ssh     && chmod 700 /home/automation/.ssh
+ ---> Running in 9f0bed543009
+ ---> Removed intermediate container 9f0bed543009
+ ---> 7ff4baa210a6
+Step 5/13 : COPY id_ed25519.pub /home/automation/.ssh/authorized_keys
+ ---> 8b6b1b16b97a
+Step 6/13 : RUN chown -R automation:automation /home/automation/.ssh     && chmod 600 /home/automation/.ssh/authorized_keys
+ ---> Running in a6f5af465ad6
+ ---> Removed intermediate container a6f5af465ad6
+ ---> 1db173c3ad0d
+Step 7/13 : RUN sed -i     -e 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/'     -e 's/^#\?PermitRootLogin.*/PermitRootLogin no/'     -e 's/^#\?PubkeyAuthentication.*/PubkeyAuthentication yes/'     /etc/ssh/sshd_config     && echo 'AllowUsers automation' >> /etc/ssh/sshd_config
+ ---> Running in 09e7ae96819a
+ ---> Removed intermediate container 09e7ae96819a
+ ---> c953da8f0eaf
+Step 8/13 : COPY daemons /etc/frr/daemons
+ ---> 7a8d1585a18b
+Step 9/13 : COPY entrypoint.sh /entrypoint.sh
+ ---> 259712f58681
+Step 10/13 : RUN chmod +x /entrypoint.sh
+ ---> Running in 144c60f2288d
+ ---> Removed intermediate container 144c60f2288d
+ ---> a8a0a7c7751c
+Step 11/13 : RUN touch /etc/frr/frr.conf /etc/frr/vtysh.conf     && echo 'service integrated-vtysh-config' > /etc/frr/vtysh.conf     && chown frr:frr /etc/frr/frr.conf /etc/frr/vtysh.conf     && chmod 640 /etc/frr/frr.conf /etc/frr/vtysh.conf
+ ---> Running in bf60ef50729b
+ ---> Removed intermediate container bf60ef50729b
+ ---> 5999da069a9a
+Step 12/13 : EXPOSE 22
+ ---> Running in 5e77d3d5e327
+ ---> Removed intermediate container 5e77d3d5e327
+ ---> 08547349f073
+Step 13/13 : ENTRYPOINT ["/entrypoint.sh"]
+ ---> Running in ff88793c1efa
+ ---> Removed intermediate container ff88793c1efa
+ ---> 7c75f46ba2f6
+Successfully built 7c75f46ba2f6
+Successfully tagged frr-lab:local
+built frr-lab:local (FRR 10.7.1)
+.venv/bin/python -m netops validate
+OK: 5 devices, 5 links, no problems
+.venv/bin/python -m netops render
+wrote 12 files under build/
+sudo containerlab deploy -t build/topology.clab.yml
+19:56:31 INFO Containerlab started version=0.83.0
+19:56:31 INFO Parsing & checking topology file=topology.clab.yml
+19:56:31 INFO Creating docker network name=clab-mgmt IPv4 subnet=172.30.30.0/24 IPv6 subnet="" MTU=0
+19:56:31 INFO Creating lab directory path=/root/net/isp-netops/build/clab-demo-isp
+19:56:31 INFO Creating container name=r2
+19:56:31 INFO Creating container name=r4
+19:56:31 INFO Creating container name=r3
+19:56:31 INFO Creating container name=r1
+19:56:31 INFO Creating container name=r5
+19:56:32 INFO Created link: r1:eth1 ▪┄┄▪ r2:eth1
+19:56:32 INFO Created link: r2:eth2 ▪┄┄▪ r3:eth1
+19:56:32 INFO Created link: r1:eth2 ▪┄┄▪ r4:eth1
+19:56:32 INFO Created link: r3:eth2 ▪┄┄▪ r4:eth2
+19:56:32 INFO Created link: r4:eth3 ▪┄┄▪ r5:eth1
+19:56:32 INFO Executed command node=r5 command="ip route del default" stdout=""
+19:56:32 INFO Executed command node=r1 command="ip route del default" stdout=""
+19:56:32 INFO Executed command node=r2 command="ip route del default" stdout=""
+19:56:32 INFO Executed command node=r3 command="ip route del default" stdout=""
+19:56:32 INFO Executed command node=r4 command="ip route del default" stdout=""
+19:56:32 INFO Adding host entries path=/etc/hosts
+19:56:32 INFO Adding SSH config for nodes path=/etc/ssh/ssh_config.d/clab-demo-isp.conf
+[1m╭[0m[1m──────────────────[0m[1m┬[0m[1m───────────────[0m[1m┬[0m[1m─────────[0m[1m┬[0m[1m────────────────[0m[1m╮[0m
+[1m│[0m[1m       Name       [0m[1m│[0m[1m   Kind/Image  [0m[1m│[0m[1m  State  [0m[1m│[0m[1m IPv4/6 Address [0m[1m│[0m
+[1m├[0m[1m──────────────────[0m[1m┼[0m[1m───────────────[0m[1m┼[0m[1m─────────[0m[1m┼[0m[1m────────────────[0m[1m┤[0m
+│ clab-demo-isp-r1 │ linux         │ running │ 172.30.30.11   │
+│                  │ frr-lab:local │         │ N/A            │
+├──────────────────┼───────────────┼─────────┼────────────────┤
+│ clab-demo-isp-r2 │ linux         │ running │ 172.30.30.12   │
+│                  │ frr-lab:local │         │ N/A            │
+├──────────────────┼───────────────┼─────────┼────────────────┤
+│ clab-demo-isp-r3 │ linux         │ running │ 172.30.30.13   │
+│                  │ frr-lab:local │         │ N/A            │
+├──────────────────┼───────────────┼─────────┼────────────────┤
+│ clab-demo-isp-r4 │ linux         │ running │ 172.30.30.14   │
+│                  │ frr-lab:local │         │ N/A            │
+├──────────────────┼───────────────┼─────────┼────────────────┤
+│ clab-demo-isp-r5 │ linux         │ running │ 172.30.30.15   │
+│                  │ frr-lab:local │         │ N/A            │
+╰──────────────────┴───────────────┴─────────┴────────────────╯
+.venv/bin/ansible-playbook ansible/deploy.yml
+
+PLAY [Wait for the routers to accept SSH] **************************************
+
+TASK [Port 22 open] ************************************************************
+ok: [r1 -> localhost]
+ok: [r3 -> localhost]
+ok: [r4 -> localhost]
+ok: [r2 -> localhost]
+ok: [r5 -> localhost]
+
+PLAY [Deploy the intended configuration] ***************************************
+
+TASK [Base FRR hygiene] ********************************************************
+included: frr_base for r1, r2, r3, r4, r5
+
+TASK [frr_base : Base FRR hygiene] *********************************************
+[WARNING]: T
+[WARNING]: o
+[WARNING]: 
+[WARNING]: e
+[WARNING]: n
+[WARNING]: s
+[WARNING]: u
+[WARNING]: r
+[WARNING]: i
+[WARNING]: d
+[WARNING]: m
+[WARNING]: p
+[WARNING]: t
+[WARNING]: c
+[WARNING]: y
+[WARNING]: a
+[WARNING]: f
+[WARNING]: h
+[WARNING]: g
+[WARNING]: l
+[WARNING]: b
+[WARNING]: w
+[WARNING]: v
+[WARNING]: Deprecation warnings can be disabled by setting `deprecation_warnings=False` in ansible.cfg.
+[DEPRECATION WARNING]: Importing 'to_text' from 'ansible.module_utils._text' is deprecated. This feature will be removed from ansible-core version 2.24. Use ansible.module_utils.common.text.converters instead.
+[DEPRECATION WARNING]: The `ansible.module_utils.common._collections_compat` module is deprecated. This feature will be removed from ansible-core version 2.24. Use `collections.abc` from the Python standard library instead.
+changed: [r4]
+changed: [r2]
+changed: [r1]
+changed: [r5]
+changed: [r3]
+
+TASK [Push the config generated from the source of truth] **********************
+changed: [r5]
+changed: [r1]
+changed: [r3]
+changed: [r2]
+changed: [r4]
+
+TASK [Report] ******************************************************************
+ok: [r1] => 
+    msg: 'r1 (customer, AS 65001): intended config applied'
+ok: [r2] => 
+    msg: 'r2 (isp-edge, AS 65100): intended config applied'
+ok: [r3] => 
+    msg: 'r3 (isp-core, AS 65100): intended config applied'
+ok: [r4] => 
+    msg: 'r4 (isp-edge, AS 65100): intended config applied'
+ok: [r5] => 
+    msg: 'r5 (customer, AS 65002): intended config applied'
+
+PLAY RECAP *********************************************************************
+r1                         : ok=5    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+r2                         : ok=5    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+r3                         : ok=5    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+r4                         : ok=5    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+r5                         : ok=5    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+scripts/e2e.sh
+== 1. health: every BGP session and OSPF neighbour comes up
+r1   ok       bgp 2/2  ospf 0/0
+r2   ok       bgp 2/2  ospf 1/1
+r3   ok       bgp 2/2  ospf 2/2
+r4   ok       bgp 3/3  ospf 1/1
+r5   ok       bgp 1/1  ospf 0/0
+== 2. backup: configs saved as git history
+r1   new
+r2   new
+r3   new
+r4   new
+r5   new
+== 3. drift: a clean network has none
+r1   ok
+r2   ok
+r3   ok
+r4   ok
+r5   ok
+== 4. drift: someone changes a router by hand -> detected
+r1   ok
+r2   ok
+r3   DRIFT
+       added since last backup:    interface eth1 | ip ospf cost 500
+r4   ok
+r5   ok
+== 5. revert the manual change -> clean again
+r1   ok
+r2   ok
+r3   ok
+r4   ok
+r5   ok
+== 6. alerting: break a BGP session -> ALERT, fix it -> RESOLVED
+healthy: no alerts
+ALERT sent: ALERT: r2: only 1/2 BGP sessions are Established
+RESOLVED sent: RESOLVED: r3: only 1/2 BGP sessions are Established
+5 message(s) delivered in total
+E2E OK
+make down
+make[1]: Entering directory '/root/net/isp-netops'
+sudo containerlab destroy -t build/topology.clab.yml --cleanup
+19:57:03 INFO Parsing & checking topology file=topology.clab.yml
+19:57:03 INFO Parsing & checking topology file=topology.clab.yml
+19:57:03 INFO Destroying lab name=demo-isp
+19:57:03 INFO Removed container name=clab-demo-isp-r2
+19:57:04 INFO Removed container name=clab-demo-isp-r1
+19:57:04 INFO Removed container name=clab-demo-isp-r5
+19:57:04 INFO Removed container name=clab-demo-isp-r3
+19:57:04 INFO Removed container name=clab-demo-isp-r4
+19:57:04 INFO Removing host entries path=/etc/hosts
+19:57:04 INFO Removing SSH config path=/etc/ssh/ssh_config.d/clab-demo-isp.conf
+make[1]: Leaving directory '/root/net/isp-netops'
+exit=0
