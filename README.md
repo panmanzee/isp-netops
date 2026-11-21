@@ -36,7 +36,7 @@ three common failures:
 | **Back up** | Every running config is saved in a git repository, so you get a history of changes. | `netops backup` |
 | **Detect drift** | Compares each router with the source of truth (missing lines) and with the approved baseline backup (lines added or removed by hand). | `netops drift` |
 | **Monitor** | Polls BGP sessions and OSPF neighbours, exposes Prometheus metrics, and draws them in Grafana. | `netops watch` |
-| **Alert** | Sends a message when a problem lasts two polls in a row, and another when it recovers. Telegram, or any Discord/Slack-style webhook. | `netops alert-test` |
+| **Alert** | Sends a message when a problem lasts two polls in a row, and another when it recovers. Telegram, or any Discord/Slack-style webhook. | `netops watch` (`netops alert-test` sends a test message) |
 
 ## The demo network
 
