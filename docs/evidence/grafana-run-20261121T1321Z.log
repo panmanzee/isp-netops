@@ -1,0 +1,28 @@
+# grafana screenshot run 2026-11-21T13:21:59Z
+r1   ok       bgp 2/2  ospf 0/0
+r2   ok       bgp 2/2  ospf 1/1
+r3   ok       bgp 2/2  ospf 2/2
+r4   ok       bgp 3/3  ospf 1/1
+r5   ok       bgp 1/1  ospf 0/0
+r1   unchanged
+r2   unchanged
+r3   unchanged
+r4   unchanged
+r5   unchanged
+ Container monitoring-prometheus-1  Started
+ Container monitoring-grafana-1  Starting
+ Container monitoring-grafana-1  Started
+== 13:23:50 break: r2 neighbor 10.255.3.3 shutdown
+== 13:25:03 fix: no shutdown
+== watcher log
+netops watch: metrics on :9108/metrics, polling every 5s
+[alert] ALERT: r2: only 1/2 BGP sessions are Established
+[alert] ALERT: r2: config drift (1 added / 0 removed since last backup)
+[alert] ALERT: r3: only 1/2 BGP sessions are Established
+[alert] RESOLVED: r2: only 1/2 BGP sessions are Established
+[alert] RESOLVED: r2: config drift (1 added / 0 removed since last backup)
+[alert] RESOLVED: r3: only 1/2 BGP sessions are Established
+screenshot ok
+ Volume monitoring_grafana-data  Removed
+ Network monitoring_default  Removed
+# done 2026-11-21T13:26:28Z

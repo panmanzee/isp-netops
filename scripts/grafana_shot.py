@@ -14,6 +14,11 @@ with sync_playwright() as p:
     page.fill("input[name=password]", os.environ["GRAFANA_PASSWORD"])
     page.click("button[type=submit]")
     page.wait_for_url(lambda u: "/login" not in u)
-    page.goto(f"{base}/d/netops?from=now-6m&to=now&kiosk")
-    page.wait_for_timeout(8000)
+    page.goto(f"{base}/d/netops?from=now-6m&to=now", wait_until="networkidle")
+    try:
+        page.wait_for_selector("text=BGP down", timeout=30000)
+    except Exception:
+        print(page.inner_text("body")[:800], file=sys.stderr)
+        raise
+    page.wait_for_timeout(5000)
     page.screenshot(path=out, full_page=True)
