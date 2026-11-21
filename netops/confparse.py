@@ -1,9 +1,18 @@
 """Compare router configs without being fooled by ordering or comments."""
 from __future__ import annotations
 
-_SKIP_PREFIXES = ("!", "building configuration", "current configuration", "frr version", "frr defaults",
-                  "service integrated-vtysh-config", "line vty", "end")
-_SKIP_EXACT = {"exit", "exit-address-family", "exit-vrf"}
+import re
+
+# "#" covers the FortiOS header (#config-version, #conf_file_ver, #buildno, #global_vdom)
+_SKIP_PREFIXES = ("!", "#", "building configuration", "current configuration", "frr version", "frr defaults",
+                  "service integrated-vtysh-config", "line vty", "ntp clock-period", "end")
+_KEEP_IN_DUMP = ("line vty",)                      # dropped when comparing, but kept so its children stay attached
+_SKIP_EXACT = {"exit", "exit-address-family", "exit-vrf", "next"}
+_ENC = re.compile(r"\bENC \S+")                      # FortiOS encrypted secrets change on every dump
+
+
+def _mask(line: str) -> str:
+    return _ENC.sub("ENC <masked>", line)
 
 
 def normalise(text: str) -> str:
@@ -12,9 +21,9 @@ def normalise(text: str) -> str:
     for raw in text.replace("\r", "").split("\n"):
         line = raw.rstrip()
         s = line.strip()
-        if not s or s.lower().startswith(_SKIP_PREFIXES):
+        if not s or s.lower().startswith(tuple(p for p in _SKIP_PREFIXES if p not in _KEEP_IN_DUMP)) or s == "next":
             continue
-        keep.append(line)
+        keep.append(_mask(line))
     return "\n".join(keep) + "\n"
 
 
@@ -23,10 +32,12 @@ def parse(text: str) -> set[str]:
     out: set[str] = set()
     stack: list[tuple[int, str]] = []
     for raw in text.replace("\r", "").split("\n"):
-        s = raw.strip()
-        if not s or s.lower().startswith(_SKIP_PREFIXES) or s in _SKIP_EXACT:
-            continue
+        s = _mask(raw.strip())
         indent = len(raw) - len(raw.lstrip(" "))
+        if not s or s.lower().startswith(_SKIP_PREFIXES) or s in _SKIP_EXACT:
+            if s and indent == 0:                       # a skipped top-level line closes the block above
+                stack.clear()
+            continue
         while stack and stack[-1][0] >= indent:
             stack.pop()
         ctx = " > ".join(t for _, t in stack)

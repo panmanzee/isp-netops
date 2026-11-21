@@ -1,0 +1,24 @@
+---
+# Copy to vendor_inventory.yml and fill in real addresses. Secrets live in Ansible Vault, not here.
+all:
+  children:
+    ios:
+      hosts:
+        sw-core:
+          ansible_host: 192.0.2.10
+      vars:
+        ansible_connection: ansible.netcommon.network_cli
+        ansible_network_os: cisco.ios.ios
+        ansible_user: netops
+        ansible_password: "{{ vault_ios_password }}"
+    fortigate:
+      hosts:
+        fw-edge:
+          ansible_host: 192.0.2.20
+          fortios_token: "{{ vault_fortios_token }}"
+      vars:
+        ansible_connection: ansible.netcommon.httpapi
+        ansible_network_os: fortinet.fortios.fortios
+        ansible_httpapi_use_ssl: true
+        ansible_httpapi_validate_certs: false
+        ansible_httpapi_port: 443

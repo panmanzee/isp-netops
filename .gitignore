@@ -14,3 +14,4 @@ build/
 backups/
 clab-*/
 .clab*
+ansible/backups/

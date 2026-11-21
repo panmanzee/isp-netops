@@ -1,0 +1,16 @@
+# Vendor devices. Secrets come from the environment, never from this file.
+targets:
+  sw-core:
+    platform: cisco_ios
+    host: 127.0.0.1
+    port: 2201
+    user: netops
+    password_env: IOS_PASSWORD
+    intended: vendor/intended/sw-core.cfg
+  fw-edge:
+    platform: fortios
+    host: 127.0.0.1
+    port: 8443
+    token_env: FORTIOS_TOKEN
+    verify_tls: false
+    intended: vendor/intended/fw-edge.conf

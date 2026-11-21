@@ -47,8 +47,8 @@ def backup(devices: dict[str, Device], root: str | Path) -> dict[str, str]:
     return result
 
 
-def check_drift(net: Network, devices: dict[str, Device], root: str | Path) -> dict[str, dict]:
-    """For each router: lines missing vs the source of truth, and lines changed since the last backup."""
+def check_drift_files(intended: dict[str, str], devices: dict[str, Device], root: str | Path) -> dict[str, dict]:
+    """For each device: lines missing vs its intended text, and lines changed since the last backup."""
     root = Path(root)
     report: dict[str, dict] = {}
     for name, dev in devices.items():
@@ -59,13 +59,18 @@ def check_drift(net: Network, devices: dict[str, Device], root: str | Path) -> d
             entry["reachable"] = False
             report[name] = entry
             continue
-        entry["missing"] = confparse.missing(intended_config(net, name), running)
+        entry["missing"] = confparse.missing(intended[name], running)
         golden = latest(root, name)
         if golden is not None:
             entry["has_backup"] = True
             entry["added"], entry["removed"] = confparse.changed(golden, running)
         report[name] = entry
     return report
+
+
+def check_drift(net: Network, devices: dict[str, Device], root: str | Path) -> dict[str, dict]:
+    """For each router: lines missing vs the source of truth, and lines changed since the last backup."""
+    return check_drift_files({n: intended_config(net, n) for n in devices}, devices, root)
 
 
 def has_drift(entry: dict) -> bool:

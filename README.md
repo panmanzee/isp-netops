@@ -83,6 +83,24 @@ make monitor-up    # Prometheus on :9190, Grafana on :3300 (localhost only)
 `make e2e` does everything in one go and proves the features against the live
 network. CI runs the same script on every push.
 
+## Vendor targets (Cisco IOS, FortiGate)
+
+`data/targets.yml` lists devices that are not FRR: a Cisco IOS switch (SSH,
+`show running-config`) and a FortiGate (REST, `/api/v2/monitor/system/config/backup`).
+Passwords and tokens come from `IOS_PASSWORD` and `FORTIOS_TOKEN`, never from the file.
+There is no real IOS or FortiOS here: `labsim/` holds small stand-ins that
+answer like those devices, so the drivers can be tested for free.
+
+```bash
+make vendor-e2e    # starts the stand-ins, backup, drift, manual change, revert
+make vendor-sim    # run only the stand-ins (needs IOS_PASSWORD and FORTIOS_TOKEN)
+make vendor-backup # backups/vendor, git history
+make vendor-drift  # vs vendor/intended/* and vs the last backup
+```
+
+`ansible/vendor_backup.yml` is the same backup done with `cisco.ios` and
+`fortinet.fortios` for real devices. It is only syntax-checked in CI.
+
 ## What the end-to-end test proves
 
 ```
@@ -112,14 +130,19 @@ netops/watch.py          the watcher and its Prometheus metrics
 ansible/deploy.yml       pushes the generated configs
 monitoring/              Prometheus + Grafana, dashboard generated as code
 scripts/e2e.sh           end-to-end proof against the live network
-tests/                   59 unit tests
+netops/vendor.py         Cisco IOS and FortiOS drivers, data/targets.yml loader
+labsim/                  IOS and FortiOS stand-ins (not real vendor software)
+scripts/vendor_e2e.sh    end-to-end proof for the vendor targets
+tests/                   70 unit tests
 ```
 
 ## Limits
 
 - The routers are virtual. The platform talks to them over SSH and `vtysh`, as
-  it would with real FRR-based devices. Support for other vendors would need a
-  new driver in `netops/device.py` and a new config template.
+  it would with real FRR-based devices.
+- The IOS and FortiOS drivers have only run against the stand-ins in `labsim/`,
+  never a real switch or firewall. Real output may need more noise rules in
+  `netops/confparse.py`.
 - Alert delivery is tested against a local stub server. Telegram and webhook
   senders are implemented but have not been tried with a real chat account.
 - The baseline backup is taken on demand (`netops backup`), not on a schedule.

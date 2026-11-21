@@ -1,0 +1,36 @@
+---
+# Real-device version of `netops vendor-backup`: saves the running configs to ansible/backups/.
+# Syntax-checked in CI only; there are no real devices in the lab (see labsim/ for the stand-ins).
+- name: Back up Cisco IOS switches
+  hosts: ios
+  gather_facts: false
+  tasks:
+    - name: Save the running config
+      cisco.ios.ios_config:
+        backup: true
+        backup_options:
+          dir_path: "{{ playbook_dir }}/backups"
+          filename: "{{ inventory_hostname }}.cfg"
+
+- name: Back up FortiGate firewalls
+  hosts: fortigate
+  gather_facts: false
+  tasks:
+    - name: Download the full config through the monitor API
+      fortinet.fortios.fortios_monitor:
+        access_token: "{{ fortios_token }}"
+        selector: backup.system.config
+        vdom: root
+        params:
+          scope: global
+      register: fortios_backup
+      changed_when: false
+      no_log: true
+
+    - name: Write it to disk
+      ansible.builtin.copy:
+        content: "{{ fortios_backup.meta.raw }}"
+        dest: "{{ playbook_dir }}/backups/{{ inventory_hostname }}.conf"
+        mode: "0600"
+      delegate_to: localhost
+      no_log: true

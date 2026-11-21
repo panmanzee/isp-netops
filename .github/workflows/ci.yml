@@ -19,6 +19,13 @@ jobs:
         run: |
           python -m netops validate
           python -m netops render --out /tmp/build
+      - name: vendor backup and drift against the IOS / FortiOS stand-ins
+        run: bash scripts/vendor_e2e.sh
+      - name: vendor Ansible playbook parses
+        run: |
+          pip install "ansible-core>=2.17"
+          ansible-galaxy collection install -r ansible/requirements.yml
+          ansible-playbook --syntax-check ansible/vendor_backup.yml -i ansible/vendor_inventory.example.yml
       - name: dashboard JSON is up to date
         run: |
           python monitoring/make_dashboard.py

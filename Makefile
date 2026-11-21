@@ -3,7 +3,7 @@ PY ?= .venv/bin/python
 ANSIBLE ?= ansible-playbook
 TOPO = build/topology.clab.yml
 
-.PHONY: help key image render up deploy verify backup drift watch down test e2e monitor-up monitor-down
+.PHONY: help key image render up deploy verify backup drift watch down test e2e monitor-up monitor-down vendor-sim vendor-backup vendor-drift vendor-e2e
 help:
 	@grep -E '^[a-z0-9-]+:' Makefile | cut -d: -f1 | tr '\n' ' '; echo
 
@@ -51,3 +51,15 @@ monitor-up:     ## Prometheus + Grafana (needs GRAFANA_PASSWORD in .env)
 
 monitor-down:
 	cd monitoring && docker compose --env-file ../.env down
+
+vendor-sim:     ## start the IOS and FortiOS stand-ins (ports 2201 and 8443), Ctrl-C to stop
+	IOS_PASSWORD=$${IOS_PASSWORD:?set IOS_PASSWORD} FORTIOS_TOKEN=$${FORTIOS_TOKEN:?set FORTIOS_TOKEN} PYTHONPATH=. sh -c 'trap "kill 0" EXIT; $(PY) -m labsim.ios_sim & $(PY) -m labsim.fortios_sim & wait'
+
+vendor-backup:  ## save the vendor targets' configs (git history in backups/vendor)
+	$(PY) -m netops vendor-backup
+
+vendor-drift:   ## compare the vendor targets with vendor/intended and the last backup
+	$(PY) -m netops vendor-drift
+
+vendor-e2e:     ## backup + drift against the stand-ins, no containers needed
+	PY=$(PY) bash scripts/vendor_e2e.sh
