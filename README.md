@@ -13,8 +13,8 @@ tested only against small stand-ins (see [Vendor targets](#vendor-targets-cisco-
 
 ![Grafana dashboard](docs/dashboard.png)
 
-*The dashboard during a test (screenshot from October 2026): a BGP session was shut down by hand, the watcher
-alerted, the session came back, and the alert resolved.*
+*Screenshot from an October 2026 run. The same test (BGP session shut on r2, ALERT, then RESOLVED) was run
+again on 2026-11-21 with the watcher, log: `docs/evidence/grafana-run-20261121T1321Z.log`.*
 
 ## The problem
 
@@ -106,19 +106,20 @@ make vendor-drift  # vs vendor/intended/* and vs the last backup
 
 All from real runs, logs in [`docs/evidence/`](docs/evidence):
 
-- Full lab on Windows 11 + WSL2, Containerlab 0.83 (2026-11-21): image build,
+- Full lab on WSL2, Containerlab 0.83 (2026-11-21): image build,
   5 routers up, Ansible deploy (5/5 hosts, 0 failed), every BGP session and
   OSPF neighbour up, a hand-made change on r3 caught as drift and cleared after
   revert, BGP break alerted and resolved. `make e2e` exit 0.
   Log: `docs/evidence/e2e-20261121T1256Z.log`.
-- GitHub Actions runs the same lab on every push: lint, 71 unit tests, the
+- GitHub Actions runs the same lab on every push: YAML lint, 71 unit tests, the
   vendor stand-in test, Ansible syntax check, and the full Containerlab e2e
-  job (green, e.g. run 44907048238: test 50 s, e2e 1 min 32 s).
+  job (green, e.g. run 44907048238: test 50 s, e2e 1 min 32 s; run 44908895421: `71 passed`).
+  The local unit log in `docs/evidence/` (59 passed) is from before the vendor tests were added.
 - Vendor stand-ins: IOS and FortiOS backups saved as git history, a shut
   interface on the switch and a new firewall policy both reported as drift,
   clean again after revert. Log: `docs/evidence/vendor-e2e-*.log`.
 
-## What the end-to-end test proves
+## What the end-to-end test checks
 
 ```
 == 1. health: every BGP session and OSPF neighbour comes up
@@ -132,6 +133,9 @@ All from real runs, logs in [`docs/evidence/`](docs/evidence):
    ALERT sent: ALERT: r2: only 1/2 BGP sessions are Established
    RESOLVED sent: RESOLVED: r3: only 1/2 BGP sessions are Established
 ```
+
+Shutting r2's session to r3 takes it down on both routers, so r2 and r3 each alert and recover;
+the script prints the first of each.
 
 ## Layout
 
