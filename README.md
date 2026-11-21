@@ -1,18 +1,19 @@
-# netops: network automation and monitoring platform
+# isp-netops: automation and monitoring for a small ISP network
 
-![CI](https://github.com/panmanzee/netops-platform/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/panmanzee/isp-netops/actions/workflows/ci.yml/badge.svg)
 
 One text file describes a network. This platform turns that file into a running
-network, checks every change before it is applied, watches the network once it
-is up, and tells you when something breaks or drifts.
+network, checks every change before it is applied, backs up every device,
+watches the network once it is up, and tells you when something breaks or drifts.
 
 It runs on a virtual network (FRRouting routers in Docker, built by
 Containerlab), so it is safe to run on a laptop or a home server. Nothing here
-touches a real network.
+touches a real network. Cisco IOS and FortiGate backup/drift is included, but
+tested only against small stand-ins (see [Vendor targets](#vendor-targets-cisco-ios-fortigate)).
 
 ![Grafana dashboard](docs/dashboard.png)
 
-*The dashboard during a test: a BGP session was shut down by hand, the watcher
+*The dashboard during a test (screenshot from October 2026): a BGP session was shut down by hand, the watcher
 alerted, the session came back, and the alert resolved.*
 
 ## The problem
@@ -101,6 +102,22 @@ make vendor-drift  # vs vendor/intended/* and vs the last backup
 `ansible/vendor_backup.yml` is the same backup done with `cisco.ios` and
 `fortinet.fortios` for real devices. It is only syntax-checked in CI.
 
+## Results
+
+All from real runs, logs in [`docs/evidence/`](docs/evidence):
+
+- Full lab on Windows 11 + WSL2, Containerlab 0.83 (2026-11-21): image build,
+  5 routers up, Ansible deploy (5/5 hosts, 0 failed), every BGP session and
+  OSPF neighbour up, a hand-made change on r3 caught as drift and cleared after
+  revert, BGP break alerted and resolved. `make e2e` exit 0.
+  Log: `docs/evidence/e2e-20261121T1256Z.log`.
+- GitHub Actions runs the same lab on every push: lint, 71 unit tests, the
+  vendor stand-in test, Ansible syntax check, and the full Containerlab e2e
+  job (green, e.g. run 44907048238: test 50 s, e2e 1 min 32 s).
+- Vendor stand-ins: IOS and FortiOS backups saved as git history, a shut
+  interface on the switch and a new firewall policy both reported as drift,
+  clean again after revert. Log: `docs/evidence/vendor-e2e-*.log`.
+
 ## What the end-to-end test proves
 
 ```
@@ -133,7 +150,7 @@ scripts/e2e.sh           end-to-end proof against the live network
 netops/vendor.py         Cisco IOS and FortiOS drivers, data/targets.yml loader
 labsim/                  IOS and FortiOS stand-ins (not real vendor software)
 scripts/vendor_e2e.sh    end-to-end proof for the vendor targets
-tests/                   70 unit tests
+tests/                   71 unit tests
 ```
 
 ## Limits
@@ -143,6 +160,9 @@ tests/                   70 unit tests
 - The IOS and FortiOS drivers have only run against the stand-ins in `labsim/`,
   never a real switch or firewall. Real output may need more noise rules in
   `netops/confparse.py`.
+- FortiOS 7.6 moved the config backup API from GET to POST. The driver tries
+  POST first and falls back to GET on a 405; both paths are tested only
+  against the stand-in.
 - Alert delivery is tested against a local stub server. Telegram and webhook
   senders are implemented but have not been tried with a real chat account.
 - The baseline backup is taken on demand (`netops backup`), not on a schedule.
