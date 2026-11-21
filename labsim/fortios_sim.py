@@ -54,13 +54,15 @@ def del_policy(text: str, num: str) -> str:
 
 
 class State:
-    def __init__(self, text: str, token: str):
+    def __init__(self, text: str, token: str, backup_method: str = "POST"):
         self.text, self.token, self.lock = text, token, threading.Lock()
+        self.backup_method = backup_method
 
     def dump(self) -> str:
         with self.lock:
             text = _ENC.sub(lambda _: f"ENC SH2{random.randbytes(24).hex()}", self.text)    # real boxes re-salt secrets
-        head = ("#config-version=FGT60F-7.2.5-FW-build1517-230307:opmode=0:vdom=0:user=admin\n"
+        ver = "7.6.0-FW-build3401-240724" if self.backup_method == "POST" else "7.2.5-FW-build1517-230307"
+        head = (f"#config-version=FGT60F-{ver}:opmode=0:vdom=0:user=admin\n"
                 f"#conf_file_ver={random.randint(10**15, 10**16)}\n#buildno=1517\n#global_vdom=1:vd_name=root\n")
         return head + text
 
@@ -95,19 +97,29 @@ def make_handler(state: State):
             self._send(401, json.dumps({"http_status": 401, "status": "error"}), "application/json")
             return False
 
-        def do_GET(self):
+        def _backup(self, method: str) -> bool:
             url = urlparse(self.path)
+            if url.path != "/api/v2/monitor/system/config/backup" or "scope=global" not in url.query:
+                return False
+            if method != state.backup_method:              # 7.6+ wants POST, older firmware GET
+                self._send(405, json.dumps({"http_status": 405, "status": "error"}), "application/json")
+            else:
+                self._send(200, state.dump())
+            return True
+
+        def do_GET(self):
             if not self._authed():
                 return
-            if url.path == "/api/v2/monitor/system/config/backup" and "scope=global" in url.query:
-                self._send(200, state.dump())
-            else:
+            if not self._backup("GET"):
                 self._send(404, json.dumps({"http_status": 404, "status": "error"}), "application/json")
 
-        def do_POST(self):                                  # test only: change the config by hand
+        def do_POST(self):
             if not self._authed():
                 return
             body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
+            if self._backup("POST"):
+                return
+            # test only: change the config by hand
             ok = self.path == "/sim/cli" and state.apply(json.loads(body or b"{}").get("cmd", ""))
             self._send(200 if ok else 400, json.dumps({"status": "success" if ok else "error"}), "application/json")
 
@@ -115,8 +127,8 @@ def make_handler(state: State):
 
 
 class FortiosSim:
-    def __init__(self, token: str, port: int = 0, tls: bool = True, start: Path = START):
-        self.state = State(Path(start).read_text(), token)
+    def __init__(self, token: str, port: int = 0, tls: bool = True, start: Path = START, backup_method: str = "POST"):
+        self.state = State(Path(start).read_text(), token, backup_method)
         self.httpd = ThreadingHTTPServer(("127.0.0.1", port), make_handler(self.state))
         self.tmp = tempfile.TemporaryDirectory()
         if tls:
@@ -139,10 +151,11 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="FortiOS-like REST stand-in for the lab")
     ap.add_argument("--port", type=int, default=8443)
     ap.add_argument("--http", action="store_true", help="plain http instead of a self-signed https")
+    ap.add_argument("--old-firmware", action="store_true", help="backup over GET like FortiOS before 7.6")
     args = ap.parse_args()
     token = os.environ.get("FORTIOS_TOKEN")
     if not token:
         raise SystemExit("set FORTIOS_TOKEN")
-    sim = FortiosSim(token, args.port, tls=not args.http)
+    sim = FortiosSim(token, args.port, tls=not args.http, backup_method="GET" if args.old_firmware else "POST")
     print(f"fortios stand-in on 127.0.0.1:{sim.port} ({'http' if args.http else 'https'})", flush=True)
     sim.httpd.serve_forever()

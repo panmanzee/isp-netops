@@ -8,7 +8,7 @@ from labsim.ios_sim import IosSim, Session
 from netops import backup, confparse
 from netops.cli import main
 from netops.device import Device, DeviceError
-from netops.vendor import TargetsError, load_targets, targets_from_file
+from netops.vendor import FortiosDevice, TargetsError, load_targets, targets_from_file
 
 IOS_RAW = """Building configuration...
 
@@ -159,3 +159,13 @@ def test_wrong_credentials_mean_unreachable(sims, tmp_path, monkeypatch):
     monkeypatch.setenv("IOS_PASSWORD", "nope")
     monkeypatch.setenv("FORTIOS_TOKEN", "nope")
     assert main(["vendor-backup", "--targets", str(sims[2]), "--dir", str(tmp_path / "b")]) == 1
+
+
+def test_fortios_before_7_6_backs_up_over_get():
+    sim = FortiosSim("tok", backup_method="GET").start()
+    try:
+        dev = FortiosDevice("fw", "127.0.0.1", port=sim.port, token="tok", verify_tls=False)
+        text = dev.running_config()
+        assert "7.2.5" in text and "fw-edge" in text
+    finally:
+        sim.stop()

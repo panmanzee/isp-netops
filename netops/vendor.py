@@ -92,8 +92,12 @@ class FortiosDevice(Device):
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         url = f"https://{self.host}:{self.port}/api/v2/monitor/system/config/backup"
         try:
-            r = requests.get(url, params={"scope": "global"}, headers={"Authorization": f"Bearer {self.token}"},
-                             verify=self.verify_tls, timeout=self.timeout)
+            for method in ("POST", "GET"):                # FortiOS 7.6+ only allows POST, older firmware GET
+                r = requests.request(method, url, params={"scope": "global"},
+                                     headers={"Authorization": f"Bearer {self.token}"},
+                                     verify=self.verify_tls, timeout=self.timeout)
+                if r.status_code != 405:
+                    break
             r.raise_for_status()
             return r.text
         except requests.RequestException as exc:
